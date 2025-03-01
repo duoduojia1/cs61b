@@ -1,6 +1,7 @@
 package game2048;
 
 import java.util.Formatter;
+import java.util.Iterator;
 import java.util.Observable;
 
 
@@ -106,14 +107,69 @@ public class Model extends Observable {
      *    value, then the leading two tiles in the direction of motion merge,
      *    and the trailing tile does not.
      * */
+
+    /**
+     * 将棋盘倾斜到指定的方向（SIDE）。
+     * 如果此操作改变了棋盘，则返回 true。
+     *
+     * 1. 如果两个相邻的 Tile 对象在运动方向上具有相同的值，它们会合并成一个值为原始值两倍的新 Tile，
+     *    并且这个新值会被加到得分（score）实例变量中。
+     *
+     * 2. 合并后的 Tile 将不会在此次倾斜操作中再次合并。因此，每次移动时，每个 Tile 最多只会参与一次合并（可能是零次）。
+     *
+     * 3. 当三个相邻的 Tile 在运动方向上具有相同的值时，前两个 Tile 会合并，而第三个 Tile 不会参与合并。
+     */
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
+        int bound = board.size();
+        boolean[][] has_merge = new boolean[bound][bound];
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
-
+        board.setViewingPerspective(side);
+        int jug_cur_row = bound - 2;
+        while(jug_cur_row >=0) {
+            for (int jug_cur_col = 0; jug_cur_col < bound; jug_cur_col++) {
+                Tile cur = tile(jug_cur_col, jug_cur_row);
+                if (cur == null) {
+                    continue;
+                }
+                int mer_row = jug_cur_row + 1;
+                int mer_col = jug_cur_col;
+                while(tile(mer_col, mer_row) == null && mer_row < bound - 1) {
+                    mer_row++;
+                }
+                // 停下来的位置是需要考虑合并/移动的位置,会首先考虑到非空的位置，考虑合并它
+                boolean success = false;
+                if( tile(mer_col,mer_row) != null && !has_merge[mer_col][mer_row]) {
+                    if(tile(mer_col,mer_row).value() == cur.value()) {
+                        has_merge[mer_col][mer_row] = true;
+                        board.move(mer_col,mer_row,cur);
+                        score += cur.value() * 2;
+                        changed = true;
+                        success = true;
+                    }
+                }
+                // 先考虑是不是合并的位置为空,再考虑是不是因为不一致而合并不了
+                if( tile(mer_col,mer_row) == null ) {
+                    board.move(mer_col,mer_row,cur);
+                    success = true;
+                    changed = true;
+                }
+                if( !success) {
+                    mer_row --;
+                    //这里其实就是移动到null的位置上
+                    if( mer_row > jug_cur_row ) {
+                        board.move(mer_col,mer_row,cur);
+                        success = true;
+                        changed = true;
+                    }
+                }
+            }
+            jug_cur_row--;
+        }
+        board.setViewingPerspective(Side.NORTH);
         checkGameOver();
         if (changed) {
             setChanged();
@@ -138,6 +194,13 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        Iterator<Tile> it = b.iterator();
+        while(it.hasNext()) {
+            Tile t = it.next();
+            if(t == null ) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -148,6 +211,15 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        Iterator<Tile> it = b.iterator();
+        while(it.hasNext()) {
+            Tile t = it.next();
+            if( t != null) {
+                if (t.value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -159,6 +231,33 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        Iterator<Tile> it = b.iterator();
+        while(it.hasNext()) {
+            Tile t = it.next();
+            if( t == null ) {
+                return true;
+            }
+        }
+        // 下面保证棋盘为满
+        int[] off_set_col = {0, -1, 0, 1};
+        int[] off_set_row = {-1, 0, 1, 0};
+        it = b.iterator();
+        while(it.hasNext()) {
+            Tile t = it.next();
+            int col = t.col();
+            int row = t.row();
+            int length = b.size();
+            for(int i = 0; i < 4; i++) {
+                int jug_col = col + off_set_col[i];
+                int jug_row = row + off_set_row[i];
+                if (jug_row < 0 || jug_row >= length || jug_col >= length || jug_col < 0) {
+                    continue;
+                }
+                if (b.tile(col, row).value() == b.tile(jug_col, jug_row).value()) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

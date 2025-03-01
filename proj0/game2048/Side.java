@@ -24,6 +24,7 @@ public enum Side {
 
     NORTH(0, 0, 0, 1), EAST(0, 1, 1, 0), SOUTH(1, 1, 0, -1),
     WEST(1, 0, -1, 0);
+    // 北->东->南->西
 
     /** The side that is in the direction (DCOL, DROW) from any square
      *  of the board.  Here, "direction (DCOL, DROW) means that to
