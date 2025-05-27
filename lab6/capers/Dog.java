@@ -10,7 +10,7 @@ import static capers.Utils.*;
 public class Dog implements Serializable{ // TODO
 
     /** Folder that dogs live in. */
-    static final File DOG_FOLDER = join(CapersRepository.CWD, "dogs"); // TODO (hint: look at the `join`
+    static final File DOG_FOLDER = join(CapersRepository.CAPERS_FOLDER, "dogs"); // TODO (hint: look at the `join`
                                          //      function in Utils)
 
     /** Age of dog. */
@@ -50,7 +50,7 @@ public class Dog implements Serializable{ // TODO
     public void haveBirthday() {
         age += 1;
         System.out.println(toString());
-        System.out.println("Happy birthday! Woof! Woof!");
+        System.out.print("Happy birthday! Woof! Woof!");
     }
 
     /**

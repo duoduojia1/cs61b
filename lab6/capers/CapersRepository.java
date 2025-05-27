@@ -53,9 +53,15 @@ public class CapersRepository {
         // TODO
         File story_file = join(CAPERS_FOLDER, "story");
         String old_text = readContentsAsString(story_file);
-        String new_text = old_text + text + '\n';
-        writeContents(story_file, new_text);
-        System.out.println(new_text);
+        if(!old_text.isEmpty()) {
+            String new_text = old_text + text;
+            writeContents(story_file, new_text + '\n');
+            System.out.print(new_text);
+        }
+        else {
+            writeContents(story_file, text + '\n');
+            System.out.print(text);
+        }
     }
 
     /**
@@ -67,7 +73,7 @@ public class CapersRepository {
         // TODO
         Dog dog = new Dog(name, breed, age);
         dog.saveDog();
-        System.out.println(dog.toString());
+        System.out.print(dog.toString());
     }
 
     /**
