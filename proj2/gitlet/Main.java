@@ -14,11 +14,19 @@ public class Main {
         switch(firstArg) {
             case "init":
                 // TODO: handle the `init` command
+                ValidArgs(args, 1);
+                Repository.init();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
                 break;
             // TODO: FILL THE REST IN
+        }
+    }
+    private static void ValidArgs(String[] args, int num) {
+        if(args.length != num) {
+            System.out.println("args length is not equal to num");
+            System.exit(0);
         }
     }
 }

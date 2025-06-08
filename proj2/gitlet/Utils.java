@@ -115,6 +115,12 @@ class Utils {
      *  creating or overwriting it as needed.  Each object in CONTENTS may be
      *  either a String or a byte array.  Throws IllegalArgumentException
      *  in case of problems. */
+
+    /** 将 CONTENTS 中的所有字节连接后写入 FILE，
+     *  根据需要创建或覆盖该文件。
+     *  CONTENTS 中的每个对象可以是 String 或 byte[] 类型。
+     *  如果出现问题，则抛出 IllegalArgumentException 异常。
+     */
     static void writeContents(File file, Object... contents) {
         try {
             if (file.isDirectory()) {

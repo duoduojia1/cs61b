@@ -2,7 +2,11 @@ package gitlet;
 
 // TODO: any imports you need here
 
-import java.util.Date; // TODO: You'll likely use this in this class
+import javax.xml.crypto.Data;
+import java.io.File;
+import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -10,7 +14,7 @@ import java.util.Date; // TODO: You'll likely use this in this class
  *
  *  @author TODO
  */
-public class Commit {
+public class Commit implements Serializable {
     /**
      * TODO: add instance variables here.
      *
@@ -19,8 +23,54 @@ public class Commit {
      * variable is used. We've provided one example for `message`.
      */
 
+    /**
+     * TODO：在此添加实例变量。
+     *
+     * 在这里列出 Commit 类的所有实例变量，并在每个变量上方写一条有用的注释，
+     * 描述该变量代表什么，以及该变量是如何被使用的。
+     * 我们已经为 `message` 提供了一个示例。
+     */
+
     /** The message of this Commit. */
     private String message;
+    // 用来存储文件名和blob的映射
+    private Map<String, String> fileToBlob = new HashMap<String, String>();
+    private List<String> parent;
+    private Date currentTime;
+    private String id;
+    private String timeStamp;
+    private File saveCommitName;
 
+    public Commit() {
+        //初始化commit
+        this.currentTime = new Date(0);
+        this.timeStamp = DateToTimeStamp(this.currentTime);
+        this.message = "initial commit";
+        this.parent = new ArrayList<String>();
+        this.id = generateId();
+        this.saveCommitName = generateSaveCommitName();
+    }
+
+    public String generateId() {
+        return Utils.sha1(message, parent.toString(), timeStamp, fileToBlob.toString());
+    }
+
+    public String DateToTimeStamp(Date date) {
+        SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy");
+        formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+        String formatted = formatter.format(date);
+        return formatted;
+    }
+
+    public File generateSaveCommitName() {
+        return Utils.join(Repository.GITLET_OBJECT_DIR, id);
+    }
+    public void save() {
+        Utils.writeObject(saveCommitName, this);
+    }
+
+    public String getId() {
+        return id;
+    }
     /* TODO: fill in the rest of this class. */
 }
