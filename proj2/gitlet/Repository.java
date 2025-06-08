@@ -1,6 +1,10 @@
 package gitlet;
 
+import edu.princeton.cs.algs4.StdOut;
+
 import java.io.File;
+import java.nio.file.Paths;
+
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
@@ -47,11 +51,29 @@ public class Repository {
     public static final File GITLET_REFS_DIR = join(GITLET_DIR, "refs");
     public static final File GITLET_heads_DIR = join(GITLET_REFS_DIR, "heads");
 
-
     public static final File GITLET_HEAD = join(GITLET_DIR, "HEAD");
     public static final File GITLET_stage = join(GITLET_DIR, "stage");
 
-    public static  Commit current_commit;
+    private static Commit current_commit;
+    private static Stage current_stage = new Stage();
+    private static String branchName;
+
+
+
+    public static void restore() {
+        // 把可持久化内容写进内存
+        // 先读取当前是在哪个分支， 再读取分支最新的commit指向哪里
+        branchName = Utils.readContentsAsString(GITLET_HEAD);
+        current_commit = Utils.readObject(join(GITLET_heads_DIR, branchName), Commit.class);
+        current_stage = Utils.readObject(GITLET_stage, Stage.class);
+    }
+
+    public static void isExistRepository() {
+        if(!GITLET_DIR.exists()) {
+            System.out.println("GITLET directory does not exist");
+            System.exit(0);
+        }
+    }
 
     public static void init() {
         if(GITLET_DIR.exists()) {
@@ -66,7 +88,12 @@ public class Repository {
         commit_init();
         HEAD_init();
         heads_init();
+        stage_init();
+
+        branchName = "master";
     }
+
+
     /* TODO: fill in the rest of this class. */
     public static void commit_init() {
         // 保存初始化节点
@@ -83,4 +110,47 @@ public class Repository {
         File heads = join(GITLET_heads_DIR, "master");
         writeContents(heads, current_commit.getId());
     }
+
+    public static void stage_init() {
+        // 可持久化暂存区
+        Utils.writeObject(GITLET_stage, current_stage);
+    }
+
+
+    public static void add(String filePath) {
+        File file = getFromPath(filePath);
+        if(!file.exists()) {
+            System.out.println("File does not exist");
+            System.exit(0);
+        }
+        Blob fileToBlob = new Blob(file);
+
+        boolean flag = true;
+        // 判断当前的commit中是否存在该Blob
+
+        if(current_commit.isExistBlob(fileToBlob.getFilepath())) {
+            // 如果存在则需要判断内容是否更改
+            String id = current_commit.getBlobId(fileToBlob.getFilepath());
+            // 反序列化出Blob内容
+            Blob oldBlob = Utils.readObject(join(GITLET_OBJECT_DIR, id), Blob.class);
+            // 判断和旧的内容是否相等
+            if(fileToBlob.compareBlob(oldBlob)) {
+                flag =false;
+            }
+        }
+        if(flag) {
+            // commit的时候直接复制原先的commit，只有是新的Blob才需要被重新加入
+            fileToBlob.save();
+            current_stage.add(fileToBlob);
+        }
+    }
+
+    public static File getFromPath(String filePath) {
+        return Paths.get(filePath).isAbsolute() ? new File(filePath) : join(CWD, filePath);
+    }
+
+
+
+
+
 }

@@ -2,6 +2,8 @@ package gitlet;
 
 // TODO: any imports you need here
 
+import edu.princeton.cs.algs4.StdOut;
+
 import javax.xml.crypto.Data;
 import java.io.File;
 import java.io.Serializable;
@@ -71,6 +73,18 @@ public class Commit implements Serializable {
 
     public String getId() {
         return id;
+    }
+
+    public boolean isExistBlob(String filePath) {
+        return fileToBlob.containsKey(filePath);
+    }
+
+    public String getBlobId(String filePath) {
+        if(!isExistBlob(filePath)) {
+            System.out.println("File not found");
+            System.exit(0);
+        }
+        return fileToBlob.get(filePath);
     }
     /* TODO: fill in the rest of this class. */
 }

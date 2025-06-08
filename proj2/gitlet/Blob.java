@@ -32,4 +32,17 @@ public class Blob implements Serializable {
     public void save() {
         writeObject(savefilename, this);
     }
+
+
+    // 常用方法
+    public String getId() {
+        return id;
+    }
+    public String getFilepath() {
+        return filepath;
+    }
+    public boolean compareBlob(Blob other) {
+        // 判断Blob两边内容的哈希值是否相等
+        return Utils.sha1(bytes).equals(Utils.sha1(other.bytes));
+    }
 }
