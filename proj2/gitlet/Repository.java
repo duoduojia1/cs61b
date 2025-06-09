@@ -64,7 +64,8 @@ public class Repository {
         // 把可持久化内容写进内存
         // 先读取当前是在哪个分支， 再读取分支最新的commit指向哪里
         branchName = Utils.readContentsAsString(GITLET_HEAD);
-        current_commit = Utils.readObject(join(GITLET_heads_DIR, branchName), Commit.class);
+        String commit_id = Utils.readContentsAsString(join(GITLET_heads_DIR, branchName));
+        current_commit = readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);
         current_stage = Utils.readObject(GITLET_stage, Stage.class);
     }
 
@@ -149,7 +150,9 @@ public class Repository {
         return Paths.get(filePath).isAbsolute() ? new File(filePath) : join(CWD, filePath);
     }
 
-
+    public static void commit(String message) {
+        // 如果message为空
+    }
 
 
 

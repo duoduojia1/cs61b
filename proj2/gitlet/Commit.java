@@ -53,6 +53,17 @@ public class Commit implements Serializable {
         this.saveCommitName = generateSaveCommitName();
     }
 
+    public Commit(Commit other, String message) {
+        this.currentTime = new Date();
+        this.timeStamp = DateToTimeStamp(this.currentTime);
+        this.message = message;
+        this.parent = new ArrayList<String>();
+        this.parent.add(other.id);
+        this.fileToBlob = new HashMap<>(other.fileToBlob);
+        this.id = generateId();
+        this.saveCommitName = generateSaveCommitName();
+    }
+
     public String generateId() {
         return Utils.sha1(message, parent.toString(), timeStamp, fileToBlob.toString());
     }

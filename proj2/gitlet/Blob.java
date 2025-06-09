@@ -6,7 +6,7 @@ import java.io.Serializable;
 import static gitlet.Utils.join;
 import static gitlet.Utils.writeObject;
 
-public class Blob implements Serializable {
+public class Blob implements Serializable, Dumpable{
     private String id;
     private byte[] bytes;
     // 存储Blob对应的源文件
@@ -44,5 +44,23 @@ public class Blob implements Serializable {
     public boolean compareBlob(Blob other) {
         // 判断Blob两边内容的哈希值是否相等
         return Utils.sha1(bytes).equals(Utils.sha1(other.bytes));
+    }
+
+    @Override
+    public void dump() {
+        // 读出bytes内容
+        System.out.println("=== Blob Dump ===");
+        System.out.println("File path: " + filepath);
+        System.out.println("Blob ID: " + id);
+        System.out.println("Blob size: " + bytes.length + " bytes");
+
+        // 尝试将内容转成 UTF-8 字符串打印
+        try {
+            String contents = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+            System.out.println("Contents:");
+            System.out.println(contents);
+        } catch (Exception e) {
+            System.out.println("Could not decode contents as UTF-8 string.");
+        }
     }
 }

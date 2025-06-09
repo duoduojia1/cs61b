@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.util.ResourceBundle;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author TODO
  */
@@ -25,6 +27,12 @@ public class Main {
                 Repository.add(args[1]);
                 break;
             // TODO: FILL THE REST IN
+            case "commit":
+                ValidArgs(args, 2);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.commit(args[1]);
+                break;
         }
     }
     private static void ValidArgs(String[] args, int num) {
