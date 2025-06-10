@@ -4,6 +4,8 @@ import edu.princeton.cs.algs4.StdOut;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -152,6 +154,35 @@ public class Repository {
 
     public static void commit(String message) {
         // 如果message为空
+        if(message.isEmpty()) {
+            System.out.println("Please enter a commit message.");
+            System.exit(0);
+        }
+        if(current_stage.isEmpty()) {
+            System.out.println("No changes added to the commit.");
+            System.exit(0);
+        }
+        Commit newCommit = new Commit(current_commit, message);
+
+        // 遍历暂存区的内容，同时比较currentCommit
+        // 因为在加入暂存区已经判断过了，Blob必然是最新的，加入即可
+        Set<Map.Entry<String, String>> set = current_stage.entrySet();
+        for (Map.Entry<String, String> entry : set) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            newCommit.put(key, value);
+        }
+
+        // 修改当前的Head到为最新的Commit下, 覆盖掉当前的分支即可、
+        moveHead(newCommit);
+        // 清空暂存区
+        current_stage.clear();
+
+    }
+
+    public static void moveHead(Commit commit) {
+        File heads = join(GITLET_heads_DIR, branchName);
+        writeContents(heads, commit.getId());
     }
 
 

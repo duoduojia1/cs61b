@@ -97,5 +97,9 @@ public class Commit implements Serializable {
         }
         return fileToBlob.get(filePath);
     }
+
+    public void put(String key, String value) {
+        fileToBlob.put(key, value);
+    }
     /* TODO: fill in the rest of this class. */
 }

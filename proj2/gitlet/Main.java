@@ -33,6 +33,12 @@ public class Main {
                 Repository.restore();
                 Repository.commit(args[1]);
                 break;
+            case "log":
+                ValidArgs(args, 1);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.log();
+                break;
         }
     }
     private static void ValidArgs(String[] args, int num) {
