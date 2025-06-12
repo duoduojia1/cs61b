@@ -101,5 +101,23 @@ public class Commit implements Serializable {
     public void put(String key, String value) {
         fileToBlob.put(key, value);
     }
+
+    public String getDate() {
+        return timeStamp;
+    }
+    public List<String> getParent() {
+        return parent;
+    }
+    public String getMessage() {
+        return message;
+    }
+
+    public boolean isExist(String filePath) {
+        return fileToBlob.containsKey(filePath);
+    }
+
+    public void remove(String filePath) {
+        fileToBlob.remove(filePath);
+    }
     /* TODO: fill in the rest of this class. */
 }
