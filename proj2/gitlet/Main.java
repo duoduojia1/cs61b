@@ -38,6 +38,7 @@ public class Main {
                 Repository.isExistRepository();
                 Repository.restore();
                 Repository.rm(args[1]);
+                break;
             case "log":
                 ValidArgs(args, 1);
                 Repository.isExistRepository();

@@ -206,6 +206,9 @@ public class Repository {
     public static void rm(String filePath) {
         // remove暂存区只保存当前已跟踪的文件，commit逻辑还得改
         // 如果当前暂存区已经存在该文件，直接删除掉即可
+        // 记得把相对路径切换到绝对路径
+        File file = getFromPath(filePath);
+        filePath = file.getAbsolutePath();
         if(current_stage.isExist(filePath)) {
             current_stage.remove(filePath);
         }
@@ -215,7 +218,6 @@ public class Repository {
             // 可以重复加入，但是只删除一次
             removal_stage.removal_add(filePath);
             // 删除掉工作区的文件
-            File file = getFromPath(filePath);
             if(file.exists()) {
                 file.delete();
             }
@@ -223,6 +225,9 @@ public class Repository {
         else {
             System.out.println("no reason to remove to file");
         }
+        // 可持久化暂存区
+        current_stage.saveStage();
+        removal_stage.saveRemovalStage();
     }
 
 
