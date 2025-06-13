@@ -247,7 +247,46 @@ public class Repository {
         }while(true);
     }
 
+    public static void global_log() {
+        // 因为都存在同一个目录下，所以没法用Util工具，写个递归得了
+        helper_global_log(current_commit);
+    }
 
+    public static void helper_global_log(Commit commit) {
+        System.out.println("===");
+        System.out.println("commit" + " " + commit.getId());
+        System.out.println("Date:" + " " + commit.getDate());
+        System.out.println(commit.getMessage());
+        System.out.println();
+        if(commit.getParent().isEmpty()) {
+            return;
+        }
+        for(int i = 0; i < commit.getParent().size(); i++) {
+            String commit_id = commit.getParent().get(i);
+            Commit next_commit = readObject(readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);)
+            helper_global_log(next_commit);
+        }
+    }
+
+    public static void find(String message) {
+        boolean is_exist = helper_find(message, current_commit);
+    }
+
+    public static boolean helper_find(String message, Commit commit) {
+        boolean jug_branch = false;
+
+        if(message.equals(commit.getMessage())) {
+            System.out.println(commit.getId());
+            jug_branch = true;
+        }
+
+        for(int i = 0; i < commit.getParent().size(); i++) {
+            String commit_id = commit.getParent().get(i);
+            Commit next_commit = readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);
+            jug_branch = jug_branch | helper_find(message, next_commit);
+        }
+        return jug_branch;
+    }
 
 
 

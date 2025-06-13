@@ -45,6 +45,21 @@ public class Main {
                 Repository.restore();
                 Repository.log();
                 break;
+            case "global_log":
+                ValidArgs(args, 1);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.global_log();
+            case "find":
+                ValidArgs(args, 2);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.find(args[1]);
+            case "status":
+                ValidArgs(args, 1);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.status();
         }
     }
     private static void ValidArgs(String[] args, int num) {
