@@ -4,8 +4,7 @@ import edu.princeton.cs.algs4.StdOut;
 
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -263,30 +262,86 @@ public class Repository {
         }
         for(int i = 0; i < commit.getParent().size(); i++) {
             String commit_id = commit.getParent().get(i);
-            Commit next_commit = readObject(readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);)
+            Commit next_commit = readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);
             helper_global_log(next_commit);
         }
     }
 
     public static void find(String message) {
-        boolean is_exist = helper_find(message, current_commit);
+        int is_exist = helper_find(message, current_commit);
+        if(is_exist == 0) {
+            System.out.println("Found no commit with that message.");
+        }
     }
 
-    public static boolean helper_find(String message, Commit commit) {
-        boolean jug_branch = false;
-
+    public static int helper_find(String message, Commit commit) {
+        int res = 0;
         if(message.equals(commit.getMessage())) {
             System.out.println(commit.getId());
-            jug_branch = true;
+            res += 1;
         }
-
+        if(commit.getParent().isEmpty()) {
+            return res;
+        }
         for(int i = 0; i < commit.getParent().size(); i++) {
             String commit_id = commit.getParent().get(i);
             Commit next_commit = readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);
-            jug_branch = jug_branch | helper_find(message, next_commit);
+            res += helper_find(message, next_commit);
         }
-        return jug_branch;
+        return res;
     }
+
+    public static void status() {
+        /**
+         * 1. 列出当前的分支
+         * 2. 暂存区的内容
+         * 3. 待删除的内容
+         */
+        System.out.println("=== Branches ===");
+        List<String> all_branch = Utils.plainFilenamesIn(GITLET_heads_DIR);
+        for(String branch : all_branch) {
+            if(branch.equals(branchName)) {
+                System.out.println("*" + branch);
+            }
+            else {
+                System.out.println(branch);
+            }
+        }
+        System.out.println();
+        System.out.println("=== Staged Files ===");
+        List<String> keys = new ArrayList<>();
+        for (Map.Entry<String, String> entry : current_stage.entrySet()) {
+            keys.add(entry.getKey());
+        }
+
+        Collections.sort(keys);
+
+        for (String key : keys) {
+            System.out.println(key);
+        }
+        System.out.println();
+
+        keys.clear();
+        System.out.println("=== Removed Files ===");
+        for (Map.Entry<String, String> entry : removal_stage.entrySet()) {
+            keys.add(entry.getKey());
+        }
+
+        Collections.sort(keys);
+
+        for (String key : keys) {
+            System.out.println(key);
+        }
+        System.out.println();
+
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        System.out.println();
+
+        System.out.println("=== Untracked Files ===");
+        System.out.println();
+
+    }
+
 
 
 
