@@ -45,7 +45,9 @@ public class Blob implements Serializable, Dumpable{
         // 判断Blob两边内容的哈希值是否相等
         return Utils.sha1(bytes).equals(Utils.sha1(other.bytes));
     }
-
+    public byte[] getBytes() {
+        return bytes;
+    }
     @Override
     public void dump() {
         // 读出bytes内容

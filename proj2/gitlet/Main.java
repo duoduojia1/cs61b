@@ -1,5 +1,6 @@
 package gitlet;
 
+import java.time.temporal.ValueRange;
 import java.util.ResourceBundle;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
@@ -64,7 +65,17 @@ public class Main {
                 Repository.status();
                 break;
             case "checkout":
-
+                Repository.isExistRepository();
+                Repository.restore();
+                if(ValidIsNum(args, 3)) {
+                    Repository.checkout(args[1], args[2]);
+                }
+                if(ValidIsNum(args, 4)) {
+                    Repository.checkout(args[1], args[2], args[3]);
+                }
+                if(ValidIsNum(args, 2)) {
+                    Repository.checkout(args[1]);
+                }
         }
     }
     private static void ValidArgs(String[] args, int num) {
@@ -72,5 +83,8 @@ public class Main {
             System.out.println("args length is not equal to num");
             System.exit(0);
         }
+    }
+    private static boolean ValidIsNum(String[] args, int num) {
+        return args.length == num;
     }
 }

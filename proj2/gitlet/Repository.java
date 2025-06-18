@@ -342,7 +342,49 @@ public class Repository {
 
     }
 
+    public static void checkout(String flag, String filename) {
+        // flag就是个占位符, 先判断最新的一个提交有没有filename
+        File file = getFromPath(filename);
+        if(!current_commit.isExist(file.getAbsolutePath())) {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+        String blobId = current_commit.getBlobId(file.getAbsolutePath());
+        Blob blob = readObject(join(GITLET_OBJECT_DIR, blobId), Blob.class);
+        Utils.writeContents(file, blob.getBytes());
+    }
 
+    public static void checkout(String id, String flag, String filename) {
+        File file = getFromPath(filename);
+        // 先判断commit是否存在
+        File commitTarget = join(GITLET_OBJECT_DIR, id);
+        if(!commitTarget.exists()) {
+            System.out.println("No commit with that id exists");
+            System.exit(0);
+        }
+        Commit historyCommit = readObject(commitTarget, Commit.class);
+        if(!historyCommit.isExist(file.getAbsolutePath())) {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+        String blobId = historyCommit.getBlobId(file.getAbsolutePath());
+        Blob blob = readObject(join(GITLET_OBJECT_DIR, blobId), Blob.class);
+        Utils.writeContents(file, blob.getBytes());
+    }
+
+    public static void checkout(String branch) {
+        // 切换分支名，并且保存对应分支的commit
+        File branchTarget = join(GITLET_heads_DIR, branch);
+        if(!branchTarget.exists()) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        }
+        if(branch.equals(branchName)) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+
+    }
 
 
 }

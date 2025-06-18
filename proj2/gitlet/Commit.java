@@ -69,7 +69,7 @@ public class Commit implements Serializable {
     }
 
     public String DateToTimeStamp(Date date) {
-        SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy");
+        SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
         String formatted = formatter.format(date);
         return formatted;
