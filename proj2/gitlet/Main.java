@@ -76,6 +76,7 @@ public class Main {
                 if(ValidIsNum(args, 2)) {
                     Repository.checkout(args[1]);
                 }
+                break;
         }
     }
     private static void ValidArgs(String[] args, int num) {

@@ -119,6 +119,12 @@ public class Commit implements Serializable {
     public void remove(String filePath) {
         fileToBlob.remove(filePath);
     }
+
+
+    public Set<Map.Entry<String, String>> entrySet() {
+        return fileToBlob.entrySet();
+    }
+
     // check map
     public void check() {
         for (String key : fileToBlob.keySet()) {

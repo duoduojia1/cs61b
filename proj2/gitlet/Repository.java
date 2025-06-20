@@ -372,19 +372,81 @@ public class Repository {
         Utils.writeContents(file, blob.getBytes());
     }
 
-    public static void checkout(String branch) {
+    public static void checkout(String branchname) {
         // 切换分支名，并且保存对应分支的commit
-        File branchTarget = join(GITLET_heads_DIR, branch);
+        File branchTarget = join(GITLET_heads_DIR, branchname);
         if(!branchTarget.exists()) {
             System.out.println("No such branch exists.");
             System.exit(0);
         }
-        if(branch.equals(branchName)) {
+        if(branchname.equals(branchName)) {
             System.out.println("No need to checkout the current branch.");
             System.exit(0);
         }
+        // 可能需要考虑下，如果被add了但是没有被commit也是不被允许的
+        // 考虑内容被覆盖的情况
+        if(!targetCurdiff(branchname)) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+        // 这一部分用来找出工作目录需要删除的文件
+        for(File file : targetCurRemove(branchname)) {
+            file.delete();
+        }
+        HelperDiffAdd(branchname);
+        current_stage.clear();
+        removal_stage.clear();
+
+        // 保存一下分支信息
+
+        Utils.writeContents(GITLET_HEAD, branchname);
+        current_stage.saveStage();
+        removal_stage.saveStage();
 
     }
 
+    public static boolean targetCurdiff(String branchname) {
+        String targetCommitId = Utils.readContentsAsString(join(GITLET_heads_DIR, branchname));
+        Commit targetCommit = readObject(join(GITLET_OBJECT_DIR, targetCommitId), Commit.class);
+        for(String fileName: Utils.plainFilenamesIn(CWD)) {
+            File file = getFromPath(fileName);
+            // 判断当前文件是否未被跟踪，即既没被add和commit, 但是目标分支存在这个文件
+            if(!current_stage.isExist(file.getAbsolutePath()) && !current_commit.isExist(file.getAbsolutePath())) {
+                if(targetCommit.isExist(file.getAbsolutePath())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
+    public static List<File> targetCurRemove(String branchname) {
+        List<File> res = new ArrayList<>();
+        String targetCommitId = Utils.readContentsAsString(join(GITLET_heads_DIR, branchname));
+        Commit targetCommit = readObject(join(GITLET_OBJECT_DIR, targetCommitId), Commit.class);
+        for(String fileName: Utils.plainFilenamesIn(CWD)) {
+            File file = getFromPath(fileName);
+            // 先判断是否是未跟踪，未跟踪的不能删除
+            if(current_stage.isExist(file.getAbsolutePath()) || current_commit.isExist(file.getAbsolutePath())) {
+                if (!targetCommit.isExist(file.getAbsolutePath())) {
+                    // 如果目标Commit不存在则要删掉
+                    res.add(file);
+                }
+            }
+        }
+        Collections.sort(res);
+        return res;
+    }
+
+    public static void HelperDiffAdd(String branchname) {
+        List<File> res = new ArrayList<>();
+        String targetCommitId = Utils.readContentsAsString(join(GITLET_heads_DIR, branchname));
+        Commit targetCommit = readObject(join(GITLET_OBJECT_DIR, targetCommitId), Commit.class);
+
+        for(Map.Entry<String, String> entry : targetCommit.entrySet()) {
+            File file = getFromPath(entry.getKey());
+            Blob blob = readObject(join(GITLET_OBJECT_DIR, entry.getValue()), Blob.class);
+            Utils.writeContents(file, blob.getBytes());
+        }
+    }
 }
