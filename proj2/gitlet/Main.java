@@ -77,6 +77,22 @@ public class Main {
                     Repository.checkout(args[1]);
                 }
                 break;
+            case "branch":
+                ValidArgs(args, 2);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.branch(args[1]);
+                break;
+            case "rm-branch":
+                ValidArgs(args, 2);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.rm_branch(args[1]);
+            case "reset":
+                ValidArgs(args, 2);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.reset(args[1]);
         }
     }
     private static void ValidArgs(String[] args, int num) {
