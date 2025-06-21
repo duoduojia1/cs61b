@@ -82,6 +82,9 @@ public class Commit implements Serializable {
         Utils.writeObject(saveCommitName, this);
     }
 
+    public void addParent(String branchName) {
+        this.parent.add(branchName);
+    }
     public String getId() {
         return id;
     }

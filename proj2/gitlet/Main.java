@@ -93,6 +93,11 @@ public class Main {
                 Repository.isExistRepository();
                 Repository.restore();
                 Repository.reset(args[1]);
+            case "merge":
+                ValidArgs(args, 2);
+                Repository.isExistRepository();
+                Repository.restore();
+                Repository.merge(args[1]);
         }
     }
     private static void ValidArgs(String[] args, int num) {

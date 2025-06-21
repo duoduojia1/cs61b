@@ -3,6 +3,7 @@ package gitlet;
 import edu.princeton.cs.algs4.StdOut;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -537,4 +538,169 @@ public class Repository {
             Utils.writeContents(file, blob.getBytes());
         }
     }
+
+    public static void merge(String otherBranchName) {
+        // 先找到分割点
+        if(plainFilenamesIn(GITLET_heads_DIR).contains(otherBranchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+
+        if(!current_stage.isEmpty() || !removal_stage.isEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+
+        if(otherBranchName.equals(branchName)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+
+        String mergeMessage = "Merged" + otherBranchName + " into " + branchName;
+        Commit mergeCommit = new Commit(current_commit, mergeMessage);
+        // 这里还有父节点需要修改
+        mergeCommit.addParent(otherBranchName);
+
+
+        Commit commitSplit = HelperGetSplit(otherBranchName);
+        Commit otherCommit = readObject(join(GITLET_OBJECT_DIR, otherBranchName), Commit.class);
+
+        // 处理情况一(只创建了分支，但是没有任何新的提交，当前分支已经超出很多了)
+        if(commitSplit.getId().equals(otherCommit.getId())) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+
+        // 处理情况二(创建了目标分支，但是当前分支已经没有任何提交了)
+        if(commitSplit.getId().equals(current_commit.getId())) {
+            System.out.println("Current branch fast-forwarded.");
+            Utils.writeContents(join(GITLET_heads_DIR, branchName), otherCommit.getId());
+            System.exit(0);
+        }
+
+        if(commitSplit != null) {
+            for(Map.Entry<String, String> entry :current_commit.entrySet()) {
+                Blob curBlob = readObject(join(GITLET_OBJECT_DIR, entry.getValue()), Blob.class);
+
+                // 分两种，一种split存在这个Blob
+                if(commitSplit.isExistBlob(entry.getKey())) {
+                    Blob splitBlob = readObject(join(GITLET_OBJECT_DIR, commitSplit.getBlobId(entry.getKey())), Blob.class);
+                    // other是否存在这个文件
+                    if(otherCommit.isExistBlob(entry.getKey())) {
+                        Blob otherBlob = readObject(join(GITLET_OBJECT_DIR, otherCommit.getBlobId(entry.getKey())), Blob.class);
+                        boolean changeSplitCur = splitBlob.compareBlob(curBlob);
+                        boolean changeSplitOther = splitBlob.compareBlob(otherBlob);
+
+                        if(changeSplitCur || !changeSplitOther) {
+                            // 合并分支发生了修改, 将当前分支的Blob修改为目标分支的Blob
+                            mergeCommit.put(entry.getKey(), otherCommit.getBlobId(entry.getKey()));
+                        }
+
+                        if(!changeSplitCur || !changeSplitOther) {
+                            boolean changeCurOther = curBlob.compareBlob(otherBlob);
+                            if(!changeCurOther) {
+                                String conflictContent = handleConflict(curBlob, otherBlob);
+                                //  直接写入到当前工作区, 并用该文件创建一个新Blob
+                                File fileconflict = new File(entry.getKey());
+                                Utils.writeContents(fileconflict, conflictContent);
+                                Blob conflictBlob = new Blob(fileconflict);
+                                mergeCommit.put(entry.getKey(), conflictBlob.getId());
+                                System.out.println("Encountered a merge conflict.");
+                            }
+                        }
+                    }
+                    // other不存在这个文件(被删掉了)
+                    else {
+                        // 判断当前文件是否被当前分支修改
+                        boolean changeSplitCur = splitBlob.compareBlob(curBlob);
+                        File fileconflict = new File(entry.getKey());
+                        if(changeSplitCur) {
+                           // 如果没有修改，直接删除，工作区上也要删除
+                            mergeCommit.remove(entry.getKey());
+                            fileconflict.delete();
+                        }
+                        if(!changeSplitCur) {
+                            // 如果被修改了，但是合并分支又被删掉了，有冲突
+                            String conflictContent = handleConflict(curBlob,null);
+                            Utils.writeContents(fileconflict, conflictContent);
+                            Blob conflictBlob = new Blob(fileconflict);
+                            mergeCommit.put(entry.getKey(), conflictBlob.getId());
+                            System.out.println("Encountered a merge conflict.");
+                        }
+                    }
+                }
+                else {
+                    // 这里处理分割点没有文件的情况，对应添加文件, 但是有可能目标分支新增文件，但是当前分支没有
+                    // 处理新增文件，但是内容不同的冲突
+                    File fileconflict = new File(entry.getKey());
+                    Blob otherBlob = readObject(join(GITLET_OBJECT_DIR, otherCommit.getBlobId(entry.getKey())), Blob.class);
+                    if(otherCommit.isExistBlob(entry.getKey())) {
+                        if(!curBlob.compareBlob(otherBlob)) {
+                            String conflictContent = handleConflict(curBlob, otherBlob);
+                            Utils.writeContents(fileconflict, conflictContent);
+                            Blob conflictBlob = new Blob(fileconflict);
+                            mergeCommit.put(entry.getKey(), conflictBlob.getId());
+                            System.out.println("Encountered a merge conflict.");
+                        }
+                    }
+                }
+            }
+
+            // 上面处理完 cur->other的情况, 这里只用特判掉 other新增但是cur没有新增
+            for(Map.Entry<String, String> entry : otherCommit.entrySet()) {
+                if(!commitSplit.isExistBlob(entry.getKey()) && !current_commit.isExistBlob(entry.getKey())) {
+                    File addFile = new File(entry.getKey());
+                    Blob otherBlob = readObject(join(GITLET_OBJECT_DIR, entry.getValue()), Blob.class);
+                    Utils.writeContents(addFile, otherBlob.getBytes());
+                    // 把当前的mergecommit指向目标的Blob
+                    mergeCommit.put(entry.getKey(), otherBlob.getId());
+                }
+            }
+        }
+        mergeCommit.save();
+    }
+
+
+    // 返回一个新生成Blob用来处理冲突
+    public static String handleConflict(Blob curBlob, Blob otherBlob) {
+        String curContent = curBlob == null ? "" : new String(curBlob.getBytes(), StandardCharsets.UTF_8);
+        String otherContent = otherBlob == null ? "" : new String(otherBlob.getBytes(), StandardCharsets.UTF_8);
+        String ConflictContent = "<<<<<<< HEAD\n" + curContent
+                + "=======\n"
+                + otherContent
+                + ">>>>>>>\n";
+        return ConflictContent;
+    }
+
+    public static Commit HelperGetSplit(String otherBranchName) {
+        HashSet<String> vis = new HashSet<>();
+        String otherCommitId = Utils.readContentsAsString(join(GITLET_heads_DIR, otherBranchName));
+//        Commit curCommit = readObject(join(GITLET_OBJECT_DIR, otherCommitId), Commit.class);
+        Queue<String> queue = new LinkedList<>();
+        queue.add(otherCommitId);
+        while(!queue.isEmpty()) {
+            String commitId = queue.poll();
+            vis.add(commitId);
+            Commit curCommit = Utils.readObject(join(GITLET_OBJECT_DIR, commitId), Commit.class);
+            for(String nextId: curCommit.getParent()) {
+                queue.add(nextId);
+            }
+        }
+
+        queue.clear();
+        queue.add(current_commit.getId());
+        while(!queue.isEmpty()) {
+            String commitId = queue.poll();
+            Commit curCommit = Utils.readObject(join(GITLET_OBJECT_DIR, commitId), Commit.class);
+            if(vis.contains(commitId)) {
+                return Utils.readObject(join(GITLET_OBJECT_DIR, commitId), Commit.class);
+            }
+            for(String nextId: curCommit.getParent()) {
+                queue.add(nextId);
+            }
+        }
+        return null;
+    }
 }
+
+
