@@ -159,11 +159,12 @@ public class Repository {
 
     public static void commit(String message) {
         // 如果message为空
+//        System.out.println(removal_stage.isEmpty());
         if(message.isEmpty()) {
             System.out.println("Please enter a commit message.");
             System.exit(0);
         }
-        if(current_stage.isEmpty()) {
+        if(current_stage.isEmpty() && removal_stage.removal_isEmpty()) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
         }
@@ -180,11 +181,10 @@ public class Repository {
 
         // 这里还要处理remove暂存区的内容
         while(!removal_stage.removal_isEmpty()) {
-            String blobId = removal_stage.getRemovalPollFirst();
-            Blob blob = Utils.readObject(join(GITLET_OBJECT_DIR, blobId), Blob.class);
-            if(current_commit.isExistBlob(blob.getFilepath())) {
+            String filePath = removal_stage.getRemovalPollFirst();
+            if(newCommit.isExistBlob(filePath)) {
                 // 不能直接删除掉Blob，可能被多个commit关联
-                current_commit.remove(blob.getFilepath());
+                newCommit.remove(filePath);
             }
         }
 
@@ -223,7 +223,7 @@ public class Repository {
             }
         }
         else {
-            System.out.println("no reason to remove to file");
+            System.out.println("no reason to remove the file");
         }
         // 可持久化暂存区
         current_stage.saveStage();
@@ -249,45 +249,43 @@ public class Repository {
 
     public static void global_log() {
         // 因为都存在同一个目录下，所以没法用Util工具，写个递归得了
-        helper_global_log(current_commit);
+        helper_global_log();
     }
 
-    public static void helper_global_log(Commit commit) {
-        System.out.println("===");
-        System.out.println("commit" + " " + commit.getId());
-        System.out.println("Date:" + " " + commit.getDate());
-        System.out.println(commit.getMessage());
-        System.out.println();
-        if(commit.getParent().isEmpty()) {
-            return;
-        }
-        for(int i = 0; i < commit.getParent().size(); i++) {
-            String commit_id = commit.getParent().get(i);
-            Commit next_commit = readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);
-            helper_global_log(next_commit);
+    public static void helper_global_log() {
+        List<String> objectSet = Utils.plainFilenamesIn(GITLET_OBJECT_DIR);
+        for(String filename : objectSet) {
+            try {
+                Commit commit = readObject(join(GITLET_OBJECT_DIR, filename), Commit.class);
+                System.out.println("===");
+                System.out.println("commit" + " " + commit.getId());
+                System.out.println("Date:" + " " + commit.getDate());
+                System.out.println(commit.getMessage());
+                System.out.println();
+            } catch (Exception ignore){
+            }
         }
     }
 
     public static void find(String message) {
-        int is_exist = helper_find(message, current_commit);
+        int is_exist = helper_find(message);
         if(is_exist == 0) {
             System.out.println("Found no commit with that message.");
         }
     }
 
-    public static int helper_find(String message, Commit commit) {
+    public static int helper_find(String message) {
         int res = 0;
-        if(message.equals(commit.getMessage())) {
-            System.out.println(commit.getId());
-            res += 1;
-        }
-        if(commit.getParent().isEmpty()) {
-            return res;
-        }
-        for(int i = 0; i < commit.getParent().size(); i++) {
-            String commit_id = commit.getParent().get(i);
-            Commit next_commit = readObject(join(GITLET_OBJECT_DIR, commit_id), Commit.class);
-            res += helper_find(message, next_commit);
+        List<String> objectSet = Utils.plainFilenamesIn(GITLET_OBJECT_DIR);
+        for(String filename : objectSet) {
+            try {
+                Commit commit = readObject(join(GITLET_OBJECT_DIR, filename), Commit.class);
+                if(commit.getMessage().equals(message)) {
+                    System.out.println(commit.getId());
+                    res++;
+                }
+            } catch (Exception ignore){
+            }
         }
         return res;
     }
@@ -312,7 +310,9 @@ public class Repository {
         System.out.println("=== Staged Files ===");
         List<String> keys = new ArrayList<>();
         for (Map.Entry<String, String> entry : current_stage.entrySet()) {
-            keys.add(entry.getKey());
+            // 这里有点问题，会输出绝对路径，只要文件名即可
+            File file = new File(entry.getKey());
+            keys.add(file.getName());
         }
 
         Collections.sort(keys);
@@ -324,8 +324,10 @@ public class Repository {
 
         keys.clear();
         System.out.println("=== Removed Files ===");
-        for (Map.Entry<String, String> entry : removal_stage.entrySet()) {
-            keys.add(entry.getKey());
+        // 这里有问题
+        for (String filePath: removal_stage.getRemovalSet()) {
+            File file = new File(filePath);
+            keys.add(file.getName());
         }
 
         Collections.sort(keys);
@@ -344,6 +346,10 @@ public class Repository {
     }
 
     public static void checkout(String flag, String filename) {
+        if(!flag.equals("--")) {
+            System.out.println("Incorrect operands.");
+            System.exit(0);
+        }
         // flag就是个占位符, 先判断最新的一个提交有没有filename
         File file = getFromPath(filename);
         if(!current_commit.isExist(file.getAbsolutePath())) {
@@ -356,6 +362,10 @@ public class Repository {
     }
 
     public static void checkout(String id, String flag, String filename) {
+        if(!flag.equals("--")) {
+            System.out.println("Incorrect operands.");
+            System.exit(0);
+        }
         File file = getFromPath(filename);
         // 先判断commit是否存在
         File commitTarget = join(GITLET_OBJECT_DIR, id);
@@ -453,7 +463,7 @@ public class Repository {
 
     public static void branch(String branchname) {
         // 先检查是否存在同名的情况, 先读取所有的目录
-        List<String> branchSets = Utils.plainFilenamesIn(GITLET_REFS_DIR);
+        List<String> branchSets = Utils.plainFilenamesIn(GITLET_heads_DIR);
         if(branchSets.contains(branchname)) {
             System.out.println("branch with that name already exists.");
             System.exit(0);
@@ -464,12 +474,14 @@ public class Repository {
     }
 
     public static void rm_branch(String branchname) {
-        List<String> branchSets = Utils.plainFilenamesIn(GITLET_REFS_DIR);
+        List<String> branchSets = Utils.plainFilenamesIn(GITLET_heads_DIR);
         if(!branchSets.contains(branchname)) {
             System.out.println("A branch with that name does not exist.");
+            System.exit(0);
         }
         if(branchName.equals(branchname)) {
             System.out.println("Cannot remove the current branch.");
+            System.exit(0);
         }
         File removeBranch = join(GITLET_heads_DIR, branchname);
         removeBranch.delete();
@@ -541,7 +553,7 @@ public class Repository {
 
     public static void merge(String otherBranchName) {
         // 先找到分割点
-        if(plainFilenamesIn(GITLET_heads_DIR).contains(otherBranchName)) {
+        if(!plainFilenamesIn(GITLET_heads_DIR).contains(otherBranchName)) {
             System.out.println("A branch with that name does not exist.");
             System.exit(0);
         }
@@ -563,7 +575,9 @@ public class Repository {
 
 
         Commit commitSplit = HelperGetSplit(otherBranchName);
-        Commit otherCommit = readObject(join(GITLET_OBJECT_DIR, otherBranchName), Commit.class);
+//        System.out.println(commitSplit.getMessage());
+        String otherCommitId = Utils.readContentsAsString(join(GITLET_heads_DIR, otherBranchName));
+        Commit otherCommit = readObject(join(GITLET_OBJECT_DIR, otherCommitId), Commit.class);
 
         // 处理情况一(只创建了分支，但是没有任何新的提交，当前分支已经超出很多了)
         if(commitSplit.getId().equals(otherCommit.getId())) {
@@ -657,7 +671,10 @@ public class Repository {
                 }
             }
         }
+
         mergeCommit.save();
+        mergeCommit.check();
+        moveHead(mergeCommit);
     }
 
 

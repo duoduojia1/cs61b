@@ -46,7 +46,7 @@ public class Main {
                 Repository.restore();
                 Repository.log();
                 break;
-            case "global_log":
+            case "global-log":
                 ValidArgs(args, 1);
                 Repository.isExistRepository();
                 Repository.restore();
@@ -88,16 +88,19 @@ public class Main {
                 Repository.isExistRepository();
                 Repository.restore();
                 Repository.rm_branch(args[1]);
+                break;
             case "reset":
                 ValidArgs(args, 2);
                 Repository.isExistRepository();
                 Repository.restore();
                 Repository.reset(args[1]);
+                break;
             case "merge":
                 ValidArgs(args, 2);
                 Repository.isExistRepository();
                 Repository.restore();
                 Repository.merge(args[1]);
+                break;
         }
     }
     private static void ValidArgs(String[] args, int num) {

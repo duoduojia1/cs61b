@@ -34,6 +34,14 @@ public class Stage implements Serializable {
     public void removal_clear() {
         removal_queue.clear();
     }
+
+    public List<String> getRemovalSet() {
+        List<String> Set = new ArrayList<>();
+        for(String filePath : removal_queue) {
+            Set.add(filePath);
+        }
+        return Set;
+    }
     // --------------------------------------------------
 
     public void add(Blob blob) {
