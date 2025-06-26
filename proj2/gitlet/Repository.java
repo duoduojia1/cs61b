@@ -214,7 +214,7 @@ public class Repository {
         }
         // 当前追踪了该文件，但不在暂存区中, 删除工作区的文件， 加入到remove暂存区中
         // 下一次commit删除
-        else if(current_commit.isExistBlob(filePath)) {
+        else if(current_commit.isExistBlob(filePath) && !current_stage.isExist(filePath)) {
             // 可以重复加入，但是只删除一次
             removal_stage.removal_add(filePath);
             // 删除掉工作区的文件
@@ -570,7 +570,7 @@ public class Repository {
             System.exit(0);
         }
 
-        String mergeMessage = "Merged" + otherBranchName + " into " + branchName;
+        String mergeMessage = "Merged " + otherBranchName + " into " + branchName;
         Commit mergeCommit = new Commit(current_commit, mergeMessage);
         // 这里还有父节点需要修改
         mergeCommit.addParent(otherBranchName);
