@@ -76,7 +76,7 @@ public class Repository {
 
     public static void isExistRepository() {
         if(!GITLET_DIR.exists()) {
-            System.out.println("GITLET directory does not exist");
+            System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
     }
@@ -413,7 +413,6 @@ public class Repository {
         Utils.writeContents(GITLET_HEAD, branchname);
         current_stage.saveStage();
         removal_stage.saveStage();
-
     }
 
     public static boolean targetCurdiff(String branchname) {
@@ -491,13 +490,14 @@ public class Repository {
     public static void reset(String commitId) {
         // 这里是把当前的branchHead强行改成了commitId
         // 判断一下是否存在这个commit
-
         List<String> commitIdSets = Utils.plainFilenamesIn(GITLET_OBJECT_DIR);
         if(!commitIdSets.contains(commitId)) {
             System.out.println("No commit with that id exists.");
+            System.exit(0);
         }
         if(!targetCommitCurdiff(commitId)) {
             System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
         }
         for(File file: targetCommitCurRemove(commitId)) {
             file.delete();
@@ -507,6 +507,8 @@ public class Repository {
         removal_stage.clear();
         current_stage.saveStage();
         removal_stage.saveStage();
+        Commit targetCommit = readObject(join(GITLET_OBJECT_DIR, commitId), Commit.class);
+        moveHead(targetCommit);
     }
 
     public static boolean targetCommitCurdiff(String commitId) {
@@ -575,7 +577,7 @@ public class Repository {
 
 
         Commit commitSplit = HelperGetSplit(otherBranchName);
-//        System.out.println(commitSplit.getMessage());
+//      System.out.println(commitSplit.getMessage());
         String otherCommitId = Utils.readContentsAsString(join(GITLET_heads_DIR, otherBranchName));
         Commit otherCommit = readObject(join(GITLET_OBJECT_DIR, otherCommitId), Commit.class);
 
@@ -589,6 +591,8 @@ public class Repository {
         if(commitSplit.getId().equals(current_commit.getId())) {
             System.out.println("Current branch fast-forwarded.");
             Utils.writeContents(join(GITLET_heads_DIR, branchName), otherCommit.getId());
+            reset(otherCommitId);
+            // 这里的工作区还要改
             System.exit(0);
         }
 
@@ -605,12 +609,12 @@ public class Repository {
                         boolean changeSplitCur = splitBlob.compareBlob(curBlob);
                         boolean changeSplitOther = splitBlob.compareBlob(otherBlob);
 
-                        if(changeSplitCur || !changeSplitOther) {
+                        if(changeSplitCur && !changeSplitOther) {
                             // 合并分支发生了修改, 将当前分支的Blob修改为目标分支的Blob
                             mergeCommit.put(entry.getKey(), otherCommit.getBlobId(entry.getKey()));
                         }
 
-                        if(!changeSplitCur || !changeSplitOther) {
+                        if(!changeSplitCur && !changeSplitOther) {
                             boolean changeCurOther = curBlob.compareBlob(otherBlob);
                             if(!changeCurOther) {
                                 String conflictContent = handleConflict(curBlob, otherBlob);
@@ -647,8 +651,8 @@ public class Repository {
                     // 这里处理分割点没有文件的情况，对应添加文件, 但是有可能目标分支新增文件，但是当前分支没有
                     // 处理新增文件，但是内容不同的冲突
                     File fileconflict = new File(entry.getKey());
-                    Blob otherBlob = readObject(join(GITLET_OBJECT_DIR, otherCommit.getBlobId(entry.getKey())), Blob.class);
                     if(otherCommit.isExistBlob(entry.getKey())) {
+                        Blob otherBlob = readObject(join(GITLET_OBJECT_DIR, otherCommit.getBlobId(entry.getKey())), Blob.class);
                         if(!curBlob.compareBlob(otherBlob)) {
                             String conflictContent = handleConflict(curBlob, otherBlob);
                             Utils.writeContents(fileconflict, conflictContent);
@@ -673,7 +677,7 @@ public class Repository {
         }
 
         mergeCommit.save();
-        mergeCommit.check();
+//        mergeCommit.check();
         moveHead(mergeCommit);
     }
 
