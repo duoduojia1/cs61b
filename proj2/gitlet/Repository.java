@@ -611,6 +611,8 @@ public class Repository {
 
                         if(changeSplitCur && !changeSplitOther) {
                             // 合并分支发生了修改, 将当前分支的Blob修改为目标分支的Blob
+                            File modifyContent = new File(entry.getKey());
+                            Utils.writeContents(modifyContent, otherBlob.getBytes());
                             mergeCommit.put(entry.getKey(), otherCommit.getBlobId(entry.getKey()));
                         }
 
@@ -665,22 +667,32 @@ public class Repository {
             }
 
             // 上面处理完 cur->other的情况, 这里只用特判掉 other新增但是cur没有新增
+            List<String> AddBlobId = new ArrayList<>();
             for(Map.Entry<String, String> entry : otherCommit.entrySet()) {
                 if(!commitSplit.isExistBlob(entry.getKey()) && !current_commit.isExistBlob(entry.getKey())) {
                     File addFile = new File(entry.getKey());
-                    Blob otherBlob = readObject(join(GITLET_OBJECT_DIR, entry.getValue()), Blob.class);
-                    Utils.writeContents(addFile, otherBlob.getBytes());
-                    // 把当前的mergecommit指向目标的Blob
-                    mergeCommit.put(entry.getKey(), otherBlob.getId());
+                    if(addFile.exists()) {
+                        // 因为这里处理新增文件，可能当前工作目录创建了一个未跟踪的新文件，所以新增时候判断是否会覆盖它
+                        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                        System.exit(0);
+                    }
+                    AddBlobId.add(entry.getValue());
                 }
+            }
+            // 如果所有的新增文件没有冲突的情况下
+            for(String addBlobId: AddBlobId) {
+                Blob addBlob = readObject(join(GITLET_OBJECT_DIR, addBlobId), Blob.class);
+                File addFile = new File(addBlob.getFilepath());
+                Utils.writeContents(addFile, addBlob.getBytes());
+                // 把当前的mergecommit指向目标的Blob
+                mergeCommit.put(addBlob.getFilepath(), addBlobId);
             }
         }
 
         mergeCommit.save();
-//        mergeCommit.check();
+        // 把mergecommit的所有新增内容或重写内容加载进工作目录
         moveHead(mergeCommit);
     }
-
 
     // 返回一个新生成Blob用来处理冲突
     public static String handleConflict(Blob curBlob, Blob otherBlob) {
